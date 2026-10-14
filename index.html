@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="B&L Studios">
+<title>B&L Studios I.A.</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.png"><link rel="apple-touch-icon" href="icon.png">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#000;--or:#D4A575;--rose:#EFC99F;--clair:#FBE6C7;--bronze:#865E3C;--etoile:#FFF0CF;--ligne:#2a1f15;--carte:#0c0905;
+--gold:linear-gradient(to right,#865E3C,#D4A575,#FFF0CF,#EFC99F,#865E3C)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--clair);font:400 16px/1.45 Inter,system-ui,sans-serif}
+body{padding:env(safe-area-inset-top,0) 0 calc(76px + env(safe-area-inset-bottom,0))}
+h1,h2{font-family:'Cormorant Garamond',Georgia,serif;font-weight:600;color:var(--or);margin:0}
+h2{font-size:26px;margin-bottom:12px}
+header{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--ligne);position:sticky;top:env(safe-area-inset-top,0);background:#000;z-index:5}
+header img{width:46px;height:46px;border-radius:10px}
+header .t{flex:1;font-family:'Cormorant Garamond',Georgia,serif;font-size:21px;color:var(--or);font-weight:600}
+.cr{text-align:right;font-size:12px;color:var(--rose)}
+.cr b{display:block;font-size:19px;color:var(--etoile);font-weight:600}
+main{max-width:640px;margin:0 auto;padding:18px 16px}
+section{display:none}section.on{display:block}
+.card{background:var(--carte);border:1px solid var(--ligne);border-radius:16px;padding:14px;margin-bottom:14px}
+label{display:block;font-size:14px;color:var(--rose);margin:12px 0 6px}
+input[type=text],input[type=password],select,textarea{width:100%;background:#000;color:var(--clair);border:1px solid var(--bronze);border-radius:12px;padding:12px;font:inherit}
+textarea{min-height:70px;resize:vertical}
+button{font:inherit;cursor:pointer}
+.btn{width:100%;padding:14px;border:0;border-radius:14px;background:var(--gold);color:#1a1008;font-weight:600;font-size:17px;margin-top:14px}
+.btn:disabled{opacity:.5}
+.ghost{background:#000;color:var(--or);border:1px solid var(--bronze);border-radius:12px;padding:10px 14px}
+.row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1}
+.chars{display:flex;gap:10px;overflow-x:auto;padding:4px 0 8px}
+.ch{flex:0 0 78px;text-align:center;font-size:12px;color:var(--rose);background:none;border:0;padding:0}
+.ch img,.ph{width:78px;height:78px;object-fit:cover;border-radius:14px;border:2px solid var(--ligne);display:block;margin-bottom:4px;background:#000}
+.ch.sel img{border-color:var(--etoile);box-shadow:0 0 12px #D4A57588}
+.prev{width:100%;max-height:260px;object-fit:contain;border-radius:12px;margin-top:10px;background:#000;display:none}
+.note{font-size:13px;color:var(--or)}
+.est{margin-top:10px;font-size:14px;color:var(--etoile)}
+.h{display:flex;gap:12px;align-items:center}
+.h video{width:84px;height:112px;object-fit:cover;border-radius:10px;background:#000}
+.h .i{flex:1;min-width:0;font-size:14px}
+.st{display:inline-block;padding:2px 10px;border-radius:99px;font-size:12px;border:1px solid var(--bronze)}
+.st.done{color:var(--etoile);border-color:var(--or)}.st.fail{color:#f0a0a0;border-color:#a05050}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:#000;border-top:1px solid var(--ligne);padding-bottom:env(safe-area-inset-bottom,0);z-index:6}
+nav button{flex:1;background:none;border:0;color:var(--bronze);padding:12px 4px 10px;font-size:12px}
+nav button.on{color:var(--etoile)}nav svg{display:block;margin:0 auto 3px;width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7}
+#toast{position:fixed;left:16px;right:16px;bottom:calc(88px + env(safe-area-inset-bottom,0));background:var(--clair);color:#1a1008;padding:12px 14px;border-radius:12px;font-size:14px;display:none;z-index:9}
+:focus-visible{outline:2px solid var(--etoile);outline-offset:2px}
+</style></head><body>
+<header><img src="data:image/jpeg;base64,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" alt="B&L Studios I.A."><div class="t">B&amp;L Studios I.A.</div>
+<div class="cr">Crédits<b id="credits">…</b></div></header>
+<main>
+<section id="s-avatar" class="on">
+ <h2>Mode Avatar</h2>
+ <div class="card">
+  <label style="margin-top:0">Personnage</label>
+  <div class="chars" id="pick"></div>
+  <input type="file" id="fImg" accept="image/*" hidden>
+  <button class="ghost" id="bImg" style="width:100%">Choisir une autre photo</button>
+  <img class="prev" id="pImg" alt="">
+ </div>
+ <div class="card">
+  <label style="margin-top:0">Vidéo de mouvement (3 à 10 secondes)</label>
+  <input type="file" id="fVid" accept="video/*" hidden>
+  <input type="file" id="fCam" accept="video/*" capture hidden>
+  <div class="row"><button class="ghost" id="bVid">Uploader</button><button class="ghost" id="bCam">Filmer</button></div>
+  <video class="prev" id="pVid" controls playsinline muted></video>
+  <div class="est" id="est"></div>
+ </div>
+ <div class="card">
+  <label style="margin-top:0">Orientation du personnage</label>
+  <select id="ori"><option value="video">Suivre le mouvement de la vidéo</option><option value="image">Rester face caméra comme sur la photo</option></select>
+  <label>Description (facultatif)</label>
+  <textarea id="prompt" placeholder="Ex : elle présente un produit dans une cuisine lumineuse"></textarea>
+ </div>
+ <button class="btn" id="go">Générer</button>
+ <p class="note" id="status" style="text-align:center"></p>
+</section>
+
+<section id="s-chars">
+ <h2>Personnages</h2>
+ <div class="card">
+  <label style="margin-top:0">Nom</label><input type="text" id="cName" placeholder="Ex : Moi, maquillée">
+  <input type="file" id="cFile" accept="image/*" hidden>
+  <div class="row" style="margin-top:12px"><button class="ghost" id="cPick">Choisir la photo</button><button class="ghost" id="cSave">Enregistrer</button></div>
+  <p class="note" id="cInfo"></p>
+ </div>
+ <div id="cList"></div>
+</section>
+
+<section id="s-hist"><h2>Historique</h2><div id="hList"></div></section>
+
+<section id="s-set">
+ <h2>Réglages</h2>
+ <div class="card">
+  <label style="margin-top:0">Clé API Kie.ai</label><input type="password" id="sKey" autocomplete="off" placeholder="Colle ta clé ici">
+  <label>Modèle</label><input type="text" id="sModel">
+  <label>Qualité</label><select id="sRes"><option>720p</option><option>1080p</option></select>
+  <button class="btn" id="sSave">Enregistrer les réglages</button>
+  <p class="note">La clé reste sur cet appareil. Tu la saisis une fois sur chaque appareil.</p>
+ </div>
+</section>
+</main>
+<div id="toast"></div>
+<nav>
+ <button data-t="avatar" class="on"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>Avatar</button>
+ <button data-t="chars"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M4 18l5-4 4 3 3-2 4 3"/></svg>Personnages</button>
+ <button data-t="hist"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Historique</button>
+ <button data-t="set"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>Réglages</button>
+</nav>
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const API='https://api.kie.ai/api/v1',UP='https://kieai.redpandaai.co/api/file-stream-upload',PER_SEC=27;
+const load=(k,d)=>{try{return JSON.parse(localStorage.getItem('bl_'+k))??d}catch{return d}};
+const save=(k,v)=>{try{localStorage.setItem('bl_'+k,JSON.stringify(v))}catch{toast('Stockage plein : supprime des éléments.')}};
+let S=load('set',{key:'',model:'kling-3.0/motion-control',res:'720p'}),chars=load('chars',[]),hist=load('hist',[]);
+let selChar=null,imgBlob=null,vidBlob=null,dur=0,newChar=null;
+function toast(m){const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',3800)}
+const auth=()=>{if(!S.key)throw new Error('Ajoute ta clé API dans Réglages.');return{Authorization:'Bearer '+S.key}};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* navigation */
+$$('nav button').forEach(b=>b.onclick=()=>{$$('nav button').forEach(x=>x.classList.toggle('on',x===b));$$('section').forEach(s=>s.classList.toggle('on',s.id==='s-'+b.dataset.t));scrollTo(0,0)});
+
+/* réglages */
+$('#sKey').value=S.key;$('#sModel').value=S.model;$('#sRes').value=S.res;
+$('#sSave').onclick=()=>{S={key:$('#sKey').value.trim(),model:$('#sModel').value.trim()||'kling-3.0/motion-control',res:$('#sRes').value};save('set',S);toast('Réglages enregistrés.');credits()};
+
+/* crédits */
+async function credits(){const el=$('#credits');if(!S.key){el.textContent='-';return}
+ try{const j=await(await fetch(API+'/chat/credit',{headers:auth()})).json();el.textContent=j.code===200?Math.round(j.data).toLocaleString('fr-FR'):'?'}catch{el.textContent='?'}}
+
+/* images */
+function shrink(file,max=1024){return new Promise((res,rej)=>{const im=new Image();im.onload=()=>{const s=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext('2d').drawImage(im,0,0,c.width,c.height);c.toBlob(res,'image/jpeg',.88)};im.onerror=rej;im.src=URL.createObjectURL(file)})}
+const toData=b=>new Promise(r=>{const f=new FileReader();f.onload=()=>r(f.result);f.readAsDataURL(b)});
+const toBlob=async d=>(await fetch(d)).blob();
+
+/* personnages */
+function renderChars(){
+ $('#pick').innerHTML=chars.length?chars.map(c=>`<button class="ch ${selChar===c.id?'sel':''}" data-id="${c.id}"><img src="${c.img}" alt=""><span>${esc(c.name)}</span></button>`).join(''):'<p class="note">Aucun personnage enregistré. Ajoutes-en un dans l\'onglet Personnages.</p>';
+ $$('#pick .ch').forEach(b=>b.onclick=async()=>{selChar=b.dataset.id;const c=chars.find(x=>x.id===selChar);imgBlob=await toBlob(c.img);showImg(c.img);renderChars()});
+ $('#cList').innerHTML=chars.map(c=>`<div class="card h"><img class="ph" src="${c.img}" alt=""><div class="i"><b>${esc(c.name)}</b></div><button class="ghost" data-del="${c.id}">Supprimer</button></div>`).join('')||'<p class="note">Ta bibliothèque est vide. Ajoute une photo de référence ci-dessus.</p>';
+ $$('[data-del]').forEach(b=>b.onclick=()=>{if(confirm('Supprimer ce personnage ?')){chars=chars.filter(c=>c.id!==b.dataset.del);if(selChar===b.dataset.del){selChar=null;imgBlob=null;$('#pImg').style.display='none'}save('chars',chars);renderChars()}})}
+function showImg(u){const p=$('#pImg');p.src=u;p.style.display='block'}
+$('#cPick').onclick=()=>$('#cFile').click();
+$('#cFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;newChar=await toData(await shrink(f));$('#cInfo').textContent='Photo prête : '+f.name};
+$('#cSave').onclick=()=>{const n=$('#cName').value.trim();if(!n||!newChar){toast('Il faut un nom et une photo.');return}
+ chars.unshift({id:'c'+Date.now(),name:n,img:newChar});save('chars',chars);newChar=null;$('#cName').value='';$('#cInfo').textContent='';$('#cFile').value='';renderChars();toast('Personnage enregistré.')};
+
+/* avatar : sélection des fichiers */
+$('#bImg').onclick=()=>$('#fImg').click();
+$('#fImg').onchange=async e=>{const f=e.target.files[0];if(!f)return;selChar=null;imgBlob=await shrink(f);showImg(URL.createObjectURL(imgBlob));renderChars()};
+$('#bVid').onclick=()=>$('#fVid').click();$('#bCam').onclick=()=>$('#fCam').click();
+function setVid(e){const f=e.target.files[0];if(!f)return;vidBlob=f;const p=$('#pVid');p.src=URL.createObjectURL(f);p.style.display='block';
+ p.onloadedmetadata=()=>{dur=p.duration;const ok=dur>=3&&dur<=10;$('#est').innerHTML=`Durée : ${dur.toFixed(1)} s. Coût estimé : environ ${Math.round(dur*PER_SEC)} crédits.`+(ok?'':'<br>La vidéo doit durer entre 3 et 10 secondes.')}}
+$('#fVid').onchange=setVid;$('#fCam').onchange=setVid;
+
+/* API Kie.ai */
+async function upload(blob,name){const f=new FormData();f.append('file',blob,name);f.append('uploadPath','bl-studios');f.append('fileName',name);
+ const j=await(await fetch(UP,{method:'POST',headers:auth(),body:f})).json();const u=j.data&&(j.data.downloadUrl||j.data.fileUrl);if(!u)throw new Error(j.msg||'Envoi du fichier impossible.');return u}
+async function createTask(p){const r=await fetch(API+'/jobs/createTask',{method:'POST',headers:{...auth(),'Content-Type':'application/json'},
+ body:JSON.stringify({model:S.model,input:{prompt:p.prompt||'',input_urls:[p.img],video_urls:[p.vid],mode:S.res,character_orientation:p.ori}})});
+ const j=await r.json();if(j.code!==200||!j.data)throw new Error(j.msg||'Kie.ai a refusé la demande.');return j.data.taskId}
+async function poll(h){while(h.state==='run'){await sleep(6000);
+ try{const d=(await(await fetch(API+'/jobs/recordInfo?taskId='+h.taskId,{headers:auth()})).json()).data||{};
+  if(d.state==='success'){let u;try{u=JSON.parse(d.resultJson).resultUrls[0]}catch{}h.state=u?'done':'fail';h.url=u;h.err=u?'':'Résultat introuvable.';if(u)toast('Vidéo prête. Touche Enregistrer dans l\'historique.')}
+  else if(d.state==='fail'){h.state='fail';h.err=d.failMsg||'La génération a échoué.'}}catch{}
+ save('hist',hist);renderHist()}credits()}
+async function start(p){const taskId=await createTask(p);const h={id:'h'+Date.now(),taskId,state:'run',date:Date.now(),p};hist.unshift(h);save('hist',hist);renderHist();poll(h)}
+
+/* génération */
+$('#go').onclick=async()=>{const b=$('#go'),st=$('#status');
+ try{if(!imgBlob)throw new Error('Choisis une photo de personnage.');if(!vidBlob)throw new Error('Ajoute une vidéo de mouvement.');
+  if(dur&&(dur<3||dur>10))throw new Error('La vidéo doit durer entre 3 et 10 secondes.');
+  b.disabled=true;st.textContent='Envoi de la photo…';const img=await upload(imgBlob,'avatar-'+Date.now()+'.jpg');
+  st.textContent='Envoi de la vidéo…';const vid=await upload(vidBlob,'mouvement-'+Date.now()+'.mp4');
+  st.textContent='Lancement…';await start({img,vid,ori:$('#ori').value,prompt:$('#prompt').value.trim()});
+  st.textContent='Génération lancée. Suis-la dans l\'onglet Historique.';credits()
+ }catch(e){st.textContent='';toast(e.message)}b.disabled=false};
+
+/* historique */
+const lab={run:'En cours',done:'Terminée',fail:'Échouée'};
+function renderHist(){$('#hList').innerHTML=hist.map(h=>`<div class="card h">${h.url?`<video src="${h.url}#t=0.1" muted playsinline preload="metadata"></video>`:'<div class="ph" style="width:84px;height:112px"></div>'}
+ <div class="i"><span class="st ${h.state}">${lab[h.state]}</span><div class="note">${new Date(h.date).toLocaleString('fr-FR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div>${h.err?`<div class="note">${esc(h.err)}</div>`:''}
+ <div class="row" style="margin-top:8px">${h.url?`<button class="ghost" data-sv="${h.id}">Enregistrer</button>`:''}${h.state==='fail'?`<button class="ghost" data-re="${h.id}">Relancer</button>`:''}<button class="ghost" data-rm="${h.id}">Retirer</button></div></div></div>`).join('')||'<p class="note">Aucune génération pour le moment.</p>';
+ $$('[data-sv]').forEach(b=>b.onclick=()=>saveVideo(hist.find(h=>h.id===b.dataset.sv).url));
+ $$('[data-re]').forEach(b=>b.onclick=async()=>{try{await start(hist.find(h=>h.id===b.dataset.re).p);toast('Relancée.')}catch(e){toast(e.message)}});
+ $$('[data-rm]').forEach(b=>b.onclick=()=>{hist=hist.filter(h=>h.id!==b.dataset.rm);save('hist',hist);renderHist()})}
+async function saveVideo(url){const name='bl-studios-'+Date.now()+'.mp4';
+ try{const blob=await(await fetch(url)).blob(),file=new File([blob],name,{type:'video/mp4'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file]});return}
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click()
+ }catch(e){if(e.name!=='AbortError')window.open(url,'_blank')}}
+
+renderChars();renderHist();credits();hist.filter(h=>h.state==='run').forEach(poll);
+</script></body></html>
