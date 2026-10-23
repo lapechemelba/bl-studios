@@ -107,7 +107,11 @@ if(/^Next and Chill :/m.test(cfg.rules)){cfg.rules=cfg.rules.split('\n').filter(
 const st=m=>$('#st').textContent=m,bz=v=>document.querySelectorAll('.b').forEach(b=>b.disabled=v);
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id==='s-'+b.dataset.t));scrollTo(0,0)});
 
-async function ask(model,sys,user,media,fb){
+async function ask(model,sys,user,media,fb,n=0){
+ try{return await ask1(model,sys,user,media,fb)}
+ catch(x){if(n<2&&/code 5\d\d/.test(x.message)){st('Kie est occupé, nouvel essai '+(n+1)+' sur 2…');await new Promise(r=>setTimeout(r,4000));return ask(model,sys,user,media,fb,n+1)}throw x}
+}
+async function ask1(model,sys,user,media,fb){
  if(!K)throw Error('Clé Kie absente : ouvre Règles et renseigne ta clé API.');
  const content=media?[{type:'text',text:user},{type:'image_url',image_url:{url:media}}]:user;
  const url='https://api.kie.ai/'+encodeURIComponent(model)+'/v1/chat/completions';
