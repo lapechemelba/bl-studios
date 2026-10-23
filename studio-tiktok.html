@@ -107,23 +107,35 @@ if(/^Next and Chill :/m.test(cfg.rules)){cfg.rules=cfg.rules.split('\n').filter(
 const st=m=>$('#st').textContent=m,bz=v=>document.querySelectorAll('.b').forEach(b=>b.disabled=v);
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id==='s-'+b.dataset.t));scrollTo(0,0)});
 
-async function ask(model,sys,user,media){
+async function ask(model,sys,user,media,fb){
  if(!K)throw Error('Clé Kie absente : ouvre Règles et renseigne ta clé API.');
  const content=media?[{type:'text',text:user},{type:'image_url',image_url:{url:media}}]:user;
  const url='https://api.kie.ai/'+encodeURIComponent(model)+'/v1/chat/completions';
+ const body={messages:[{role:'system',content:sys},{role:'user',content}],stream:!media};
+ if(!media&&/(^|-)pro(-|$)/.test(model))body.reasoning_effort='low';
  let r;
  try{
-  r=await fetch(url,{method:'POST',headers:{Authorization:'Bearer '+K,'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:sys},{role:'user',content}],stream:false})});
+  r=await fetch(url,{method:'POST',headers:{Authorization:'Bearer '+K,'Content-Type':'application/json'},body:JSON.stringify(body)});
  }catch(err){throw Error('Connexion à Kie impossible (réseau ou CORS). Vérifie la connexion et l’accès API depuis ce site. Détail : '+err.message)}
+ if(body.stream&&r.ok&&(r.headers.get('content-type')||'').includes('event-stream')&&r.body&&r.body.getReader){
+  const rd=r.body.getReader(),dc=new TextDecoder();let buf='',txt='';
+  for(;;){const{done,value}=await rd.read();if(done)break;buf+=dc.decode(value,{stream:true});const ls=buf.split('\n');buf=ls.pop();
+   for(const l of ls){const m=l.trim();if(m.startsWith('data:')){const d=m.slice(5).trim();if(d&&d!=='[DONE]'){try{txt+=JSON.parse(d).choices?.[0]?.delta?.content||''}catch{}}}
+    else if(m.startsWith('{')){try{const o=JSON.parse(m);if(o.code!==undefined&&o.code!==200)throw Error('Kie : '+(o.msg||o.message||'erreur')+' (code '+o.code+').')}catch(x){if(/^Kie/.test(x.message))throw x}}}}
+  if(!txt.trim())throw Error('Réponse vide du modèle '+model);
+  return txt;
+ }
  const raw=await r.text();let j;
  try{j=JSON.parse(raw)}catch{throw Error('Kie a renvoyé une réponse non JSON (HTTP '+r.status+').')}
  if(!r.ok || (j.code!==undefined && j.code!==200)){
+  if(j.code===422&&!fb&&model!=='gemini-3.1-pro'){toast('Le modèle '+model+' n’est pas disponible chez Kie, j’utilise gemini-3.1-pro.');return ask('gemini-3.1-pro',sys,user,media,1)}
   throw Error('Kie : '+(j.error?.message||j.msg||j.message||'erreur inconnue')+' (HTTP '+r.status+(j.code!==undefined?', code '+j.code:'')+').');
  }
  const t=j.choices?.[0]?.message?.content;
  if(typeof t!=='string'||!t.trim())throw Error('Réponse vide du modèle '+model+(j.msg?' : '+j.msg:''));
  return t;
-}const J=t=>{const a=t.indexOf('{'),b=t.lastIndexOf('}');if(a<0||b<a)throw Error('L’IA n’a pas renvoyé le JSON attendu. Réessaie.');try{return JSON.parse(t.slice(a,b+1))}catch{throw Error('Le JSON renvoyé par l’IA est invalide. Réessaie.')}};
+}
+const J=t=>{const a=t.indexOf('{'),b=t.lastIndexOf('}');if(a<0||b<a)throw Error('L’IA n’a pas renvoyé le JSON attendu. Réessaie.');try{return JSON.parse(t.slice(a,b+1))}catch{throw Error('Le JSON renvoyé par l’IA est invalide. Réessaie.')}};
 const N=()=>Math.ceil(75/cfg.d),D=s=>s._d||cfg.d,PM={8:[2,3],10:[3,4],15:[4,4]},getU=()=>univ.find(x=>x.id===$('#u').value)||univ[0];
 const FMT=`Réponds uniquement en JSON : {"titre":"","synopsis":"3 à 4 phrases : début, développement, chute","accroche":"phrase dite dans les 3 premières secondes","premiere_image":"","legende":"légende TikTok avec hashtags","style":"une ligne de style visuel et d’ambiance adaptée à l’univers","persos":[{"nom":"","tete":"tête et visage","corps":"corps et morphologie","vetements":"vêtements et accessoires","signe":"un détail reconnaissable","voix":"voix, tonalité, accent"}],"decors":[{"nom":"","description":"description précise et constante du lieu"}],"blocs":[{"decor":"nom exact d’un décor de la liste decors","plans":[{"s":4,"cadrage":"plan rapproché de X","action":"","qui":"nom de celui qui parle","visibles":["noms visibles à l’écran"],"ton":"","texte":""}],"musique":"musique d’ambiance","sons":"bruitages","fin":"description précise de l’image de fin, pour enchaîner avec le bloc suivant"}]}`;
 const plN=d=>PM[d][0]===PM[d][1]?String(PM[d][0]):PM[d][0]+' ou '+PM[d][1];
