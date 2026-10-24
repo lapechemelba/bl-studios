@@ -168,24 +168,33 @@ function ctl(s){const d=D(s),w=[],ns=(s.persos||[]).map(p=>p.nom),dn=(s.decors||
 const wc=t=>String(t||'').split(/\s+/).filter(w=>/[\p{L}\p{N}]/u.test(w)).length;
 const tr=t=>String(t||'').trim().replace(/[.,;:\s]+$/,'');
 const cleanSons=t=>String(t||'').split(/\s*[,;]\s*/).filter(x=>x&&!/musique|mélodie|chanson|bande[- ]son|instrumental/i.test(x)).join(', ');
+const fiche=p=>`- ${p.nom} : tête et visage : ${p.tete}. Corps : ${p.corps}. ${p.vetements?'Vêtements et accessoires : '+p.vetements+'. ':''}${p.signe?p.signe+'. ':''}Voix : ${p.voix}.`;
 const AU0='Aucune musique de fond, aucune mélodie, aucune bande-son musicale. Conserver uniquement les dialogues en français, les voix des personnages, les bruitages réalistes et les sons naturels de la scène. Voix parfaitement audibles et distinctes.';
 function pr(s,i){const b=s.blocs[i];if(b._txt)return b._txt;const ns=new Set(),d=D(s);let t=0;
  const pl=(b.plans||[]).map((p,k)=>{[p.qui,...(p.visibles||[])].forEach(x=>x&&ns.add(x));const a=t;t+=+p.s;return `Plan ${k+1}, de ${a} à ${t} s : ${tr(p.cadrage)}, ${tr(p.action)}, caméra fixe. ${(p.qui&&String(p.texte||'').trim())?`${p.qui} dit en français${tr(p.ton)?', sur un ton '+tr(p.ton).replace(/^./,c=>c.toLowerCase()):''} : « ${String(p.texte).trim()} »`:'Aucun dialogue dans ce plan'} Coupe.`}).join('\n');
- const ch=s.persos.filter(p=>ns.has(p.nom)).map(p=>`- ${p.nom} : tête et visage : ${p.tete}. Corps : ${p.corps}. ${p.vetements?'Vêtements et accessoires : '+p.vetements+'. ':''}${p.signe?p.signe+'. ':''}Voix : ${p.voix}.`).join('\n');
+ const ch=s.persos.filter(p=>ns.has(p.nom)).map(fiche).join('\n');
  const dc=(s.decors||[]).find(x=>x.nom===b.decor),sn=cleanSons(b.sons),au=sn?' Bruitages et sons d’ambiance de la scène : '+tr(sn)+'.':'';
  return `STYLE VISUEL : ${s.style}\n\nPERSONNAGES :\n${ch}\n\nDÉCOR : ${dc?dc.nom+', '+dc.description:b.decor}\n\nDÉCOUPAGE VIDÉO (${d} s, ${(b.plans||[]).length} plans) :\n${pl}\n\nAUDIO : ${AU0}${au}\n\nIMAGE DE FIN : ${b.fin}\n\nAucun sous-titre, aucun texte à l’écran.`}
 const story=s=>s.blocs.map(b=>(b.plans||[]).filter(p=>p.qui&&String(p.texte||'').trim()).map(p=>`${p.qui} : ${p.texte}`).join('\n')).join('\n');
-let edi=-1;
+let edi=-1,edp=-1;
 function show(){const s=cur;if(!s){$('#out').innerHTML='';return}try{localStorage.setItem('bl_tt_cur',JSON.stringify(s))}catch{}
  const d=D(s),w=ctl(s),notes=[...(s._p||[]).map(x=>'Corrigé : '+x),...w.map(x=>'À revoir : '+x),...(s._au||[]).map(x=>'À revoir : '+x)];
  const ob=(s._ob||[]).length?'Éléments décisifs vérifiés :\n'+s._ob.join('\n')+'\n\n':'';
  const sgs=(s._sg||[]).map((x,i)=>`<div class="c"><pre>${e('Bloc '+x.bloc+(x.plan?', plan '+x.plan:'')+' : '+x.raison+'\nAvant : '+x.ancien+'\nAprès : '+x.nouveau)}</pre><div class="r"><button class="g" onclick="sg(${i},1)">Accepter</button><button class="g" onclick="sg(${i},0)">Ignorer</button></div></div>`).join('');
  $('#out').innerHTML=`<div class="c"><h3>${e(s.titre)}</h3><pre>${s.synopsis?'Synopsis : '+e(s.synopsis)+'\n':''}Accroche : ${e(s.accroche)}\nPremière image : ${e(s.premiere_image)}\nLégende : ${e(s.legende)}\nPersonnages : ${e(s.persos.map(p=>p.nom).join(', '))}${(s.decors||[]).length?'\nDécors : '+e(s.decors.map(x=>x.nom).join(', ')):''}</pre></div>`
  +`<div class="r"><button class="b" onclick="sauver()">💾 Enregistrer</button><button class="b" onclick="goM()">📁 Mes scénarios</button></div><p class="n">${s._sid?'Déjà enregistré : touche Enregistrer pour mettre à jour.':'Pas encore enregistré.'}</p>`
+ +`<details class="c"${edp>=0?' open':''}><summary style="cursor:pointer;color:var(--et)">👤 Personnages : toucher pour éditer</summary>`+s.persos.map((p,i)=>edp===i?`<div style="margin-top:10px"><h3>${e(p.nom)}</h3><label>Tête et visage</label><textarea id="pe-t">${e(p.tete)}</textarea><label>Corps</label><textarea id="pe-c">${e(p.corps)}</textarea><label>Vêtements et accessoires</label><textarea id="pe-v">${e(p.vetements||'')}</textarea><label>Détail reconnaissable</label><textarea id="pe-s">${e(p.signe||'')}</textarea><label>Voix</label><textarea id="pe-x">${e(p.voix)}</textarea><div class="r" style="margin-top:8px"><button class="g" onclick="vp(${i})">Valider pour toutes les scènes</button><button class="g" onclick="ep(-1)">Annuler</button></div></div>`:`<div style="margin-top:10px"><h3>${e(p.nom)}</h3><pre>${e(p.tete)}</pre><button class="g" onclick="ep(${i})">Éditer le personnage</button></div>`).join('')+`</details>`
  +s.blocs.map((b,i)=>edi===i?`<div class="c"><h3>${i*d} s à ${(i+1)*d} s, modification à la main</h3><textarea id="tx" style="min-height:380px">${e(pr(s,i))}</textarea><div class="r" style="margin-top:8px"><button class="g" onclick="vt(${i})">Valider</button><button class="g" onclick="ee(-1)">Annuler</button><button class="g" onclick="rt(${i})">Rétablir</button></div></div>`:`<div class="c"><h3>${i*d} s à ${(i+1)*d} s${b._txt?' (modifié à la main)':''}</h3><pre>${e(pr(s,i))}</pre><div class="r"><button class="g" onclick="cp(${i})">Copier le prompt</button><button class="g" onclick="ed(${i})">Modifier</button><button class="g" onclick="ee(${i})">Éditer le texte</button></div></div>`).join('')
  +`<div class="c"><h3>Contrôle</h3><pre>${e(ob+(notes.join('\n')||'Rien à signaler.'))}</pre></div>`
  +(sgs?`<h2 style="margin-top:6px">Suggestions</h2><p class="n">Rien n’est modifié sans ton accord.</p>`+sgs:'')
  +`<div class="r"><button class="b" onclick="cs()">Copier les scènes</button><button class="b" onclick="ca()">Tout copier</button></div><div class="r" style="margin-top:8px"><button class="b" onclick="cf()">Copier les fiches</button><button class="b" onclick="run(0,1)">Régénérer</button></div>`}
+const ep=i=>{edp=i;show()};
+function vp(i){const p=cur.persos[i],old=fiche(p),g=id=>$(id).value.trim();
+ if(!g('#pe-t')||!g('#pe-c')||!g('#pe-x')){toast('Tête, corps et voix ne peuvent pas rester vides.');return}
+ p.tete=g('#pe-t');p.corps=g('#pe-c');p.vetements=g('#pe-v');p.signe=g('#pe-s');p.voix=g('#pe-x');
+ const nw=fiche(p),manu=[];
+ cur.blocs.forEach((b,k)=>{if(b._txt&&old!==nw){if(b._txt.includes(old))b._txt=b._txt.split(old).join(nw);else if((b.plans||[]).some(x=>x.qui===p.nom||(x.visibles||[]).includes(p.nom)))manu.push(k+1)}});
+ edp=-1;show();toast(manu.length?'Appliqué, sauf aux blocs modifiés à la main : '+manu.join(', ')+'.':'Appliqué à toutes les scènes. Pense à enregistrer.')}
 const ee=i=>{edi=i;show()},vt=i=>{const v=$('#tx').value;if(v.trim())cur.blocs[i]._txt=v;edi=-1;show();toast('Modification gardée. Pense à enregistrer.')},rt=i=>{delete cur.blocs[i]._txt;edi=-1;show()};
 function sg(i,ok){const x=(cur._sg||[])[i];if(!x)return;
  if(ok){const b=cur.blocs[x.bloc-1],t=x.champ==='fin'?b:((b&&b.plans)||[])[x.plan-1],nv=String(x.nouveau||'').trim();
@@ -221,7 +230,7 @@ async function run(sur,re){const U=getU(),nm=tirage();let ti=$('#ti').value.trim
   await comp();await rac();
   st('Je relis la cohérence…');let au=null,sgl=[];
   try{const r=J(await ask(cfg.mc,sysC(U),JSON.stringify(s)));au=r.audit||null;sgl=(r.suggestions||[]).filter(x=>x&&x.bloc>=1&&x.nouveau&&x.ancien!==undefined).slice(0,6)}catch{ps.push('Relecture de cohérence indisponible (Kie occupé), le scénario n’a pas été relu.')}
-  s._p=ps;s._ob=((au&&au.objets)||[]).map(o=>`${o.nom} : introduit bloc ${o.introduit}, utilisé bloc ${o.utilise}`);s._au=audW(au);s._sg=sgl;edi=-1;cur=s;hist.unshift({titre:s.titre||ti,s,d:Date.now()});hist=hist.slice(0,12);W('bl_tt_hist',hist);show();hs();st('')}
+  s._p=ps;s._ob=((au&&au.objets)||[]).map(o=>`${o.nom} : introduit bloc ${o.introduit}, utilisé bloc ${o.utilise}`);s._au=audW(au);s._sg=sgl;edi=-1;edp=-1;cur=s;hist.unshift({titre:s.titre||ti,s,d:Date.now()});hist=hist.slice(0,12);W('bl_tt_hist',hist);show();hs();st('')}
  catch(x){st('');toast(x.message)}bz(false)}
 let sav=L('bl_tt_sav',[]);const SV=()=>W('bl_tt_sav',sav),STT=['À réaliser','En cours','Terminé'],goM=()=>document.querySelector('nav button[data-t="m"]').click();
 function sauver(){if(!cur)return;const now=Date.now();let r=cur._sid&&sav.find(x=>x.id===cur._sid);
@@ -229,7 +238,7 @@ function sauver(){if(!cur)return;const now=Date.now();let r=cur._sid&&sav.find(x
  r.titre=cur.titre;r.maj=now;r.univ=cur._u||'';r.s=JSON.parse(JSON.stringify(cur));SV();rms();show();toast('Enregistré sur cet iPhone, dans Safari.')}
 function rms(){$('#ms').innerHTML=sav.map((r,i)=>`<div class="c"><h3>${e(r.titre)}</h3><p class="n" style="min-height:0">${e(r.univ||'')} · ${new Date(r.maj||Date.now()).toLocaleDateString('fr-FR')} · ${r.s.blocs.length} blocs de ${D(r.s)} s</p><select onchange="stt(${i},this.value)">${STT.map(x=>`<option${x===r.statut?' selected':''}>${x}</option>`).join('')}</select><div class="r" style="margin-top:8px"><button class="g" onclick="ou(${i})">Ouvrir</button><button class="g" onclick="sup(${i})">Supprimer</button></div></div>`).join('')||'<p class="n">Aucun scénario enregistré. Touche « Enregistrer » sous une histoire.</p>'}
 function stt(i,v){sav[i].statut=v;SV()}
-function ou(i){cur=JSON.parse(JSON.stringify(sav[i].s));cur._sid=sav[i].id;edi=-1;$('#ti').value=cur.titre||'';if(cur._uid&&univ.some(x=>x.id===cur._uid)){$('#u').value=cur._uid;cfg.u=cur._uid}show();document.querySelector('nav button').click()}
+function ou(i){cur=JSON.parse(JSON.stringify(sav[i].s));cur._sid=sav[i].id;edi=-1;edp=-1;$('#ti').value=cur.titre||'';if(cur._uid&&univ.some(x=>x.id===cur._uid)){$('#u').value=cur._uid;cfg.u=cur._uid}show();document.querySelector('nav button').click()}
 function sup(i){if(!confirm('Supprimer le scénario « '+sav[i].titre+' » ? Cette action est définitive.'))return;if(cur&&cur._sid===sav[i].id)delete cur._sid;sav.splice(i,1);SV();rms();if(cur)show()}
 function expo(){const data=JSON.stringify({app:'studio-tiktok',v:1,scenarios:sav},null,1);
  try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'application/json'}));a.download='scenarios-studio-tiktok.json';document.body.appendChild(a);a.click();a.remove();$('#pm').textContent='Fichier prêt : enregistre-le dans Fichiers (iCloud Drive).'}
