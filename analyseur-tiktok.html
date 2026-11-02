@@ -68,10 +68,17 @@ pre{font:400 14px/1.6 ui-monospace,Menlo,monospace;white-space:pre-wrap;word-bre
 <input type="password" id="key" autocomplete="off" placeholder="Colle ta clé ici">
 <label for="model">Modèle</label>
 <input type="text" id="model" autocomplete="off">
+<p class="sub" id="saved" style="margin:10px 0 0">Les réglages s’enregistrent tout seuls quand tu les modifies.</p>
 </details>
 </div>
 
 <div id="out" class="hidden">
+<h2>Changer un nom ou un mot partout</h2>
+<div class="panel">
+<div class="row"><div><label for="rf">Remplacer</label><input type="text" id="rf" placeholder="Lemon" autocomplete="off"></div><div><label for="rt">Par</label><input type="text" id="rt" placeholder="Chéri" autocomplete="off"></div></div>
+<button class="go" id="rb">Remplacer partout</button>
+<div class="sub" id="rmsg" style="margin:10px 0 0"></div>
+</div>
 <h2>Éléments à changer</h2>
 <div class="panel" id="els"></div>
 <h2>Personnages</h2>
@@ -89,7 +96,7 @@ function esc(t){return String(t==null?'':t).replace(/[&<>"]/g,function(c){return
 var data=null,vals={},imgs={},phKey=null;
 
 $('#key').value=ls('gk')||'';
-$('#model').value=ls('gm')||'gemini-2.5-flash';
+var gm=ls('gm');if(!gm||gm==='gemini-2.5-flash')gm='gemini-3.8-flash';$('#model').value=gm;ss('gm',gm);
 $('#style').value=ls('gs')||'Cinematic Disney Pixar 3D animation';
 try{var old=JSON.parse(ls('gd')||'null');if(old&&old.data){data=old.data;vals=old.vals||{};show()}}catch(e){}
 function idb(){return new Promise(function(res,rej){var r=indexedDB.open('atk',1);r.onupgradeneeded=function(){r.result.createObjectStore('k')};r.onsuccess=function(){res(r.result)};r.onerror=rej})}
@@ -104,7 +111,7 @@ function sub(t){return String(t||'').replace(/\{\{(\w+)\}\}/g,function(m,id){ret
 async function gem(parts){
   var k=$('#key').value.trim();
   if(!k)throw new Error('Colle ta clé API Gemini dans les réglages.');
-  var m=$('#model').value.trim()||'gemini-2.5-flash';
+  var m=$('#model').value.trim()||'gemini-3.8-flash';
   var r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+m+':generateContent',{
     method:'POST',
     headers:{'Content-Type':'application/json','x-goog-api-key':k},
@@ -160,11 +167,24 @@ function show(){
     i.addEventListener('input',function(){vals[i.dataset.id]=i.value;persist();scenes()});
   });
   $('#chars').innerHTML=(data.personnages||[]).map(function(p,i){
-    return '<div class="chip"><b>'+esc(p.nom)+'</b><span>'+esc(p.description)+'</span><div class="phw">'+phH('c'+i)+'</div></div>';
+    return '<div class="chip"><div class="row" style="grid-template-columns:1fr auto;margin-bottom:8px"><input type="text" data-cn="'+i+'" value="'+esc(p.nom)+'" aria-label="Prénom du personnage"><button class="cp" data-ap="'+i+'">Appliquer partout</button></div><span>'+esc(p.description)+'</span><div class="phw">'+phH('c'+i)+'</div></div>';
   }).join('');
   scenes();
 }
 
+function repAll(a,b){
+  var n=0,re=new RegExp('(^|[^\\p{L}\\p{N}])('+a.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')(?![\\p{L}\\p{N}])','giu');
+  function f(t){
+    if(typeof t!=='string')return t;
+    return t.replace(re,function(m,p,w){n++;var r=b;if(b&&w[0]!==w[0].toLowerCase())r=b[0].toUpperCase()+b.slice(1);return p+r});
+  }
+  data.titre=f(data.titre);
+  (data.personnages||[]).forEach(function(p){p.nom=f(p.nom);p.description=f(p.description)});
+  (data.elements||[]).forEach(function(e){e.label=f(e.label);e.valeur=f(e.valeur)});
+  Object.keys(vals).forEach(function(k){vals[k]=f(vals[k])});
+  (data.scenes||[]).forEach(function(s){['titre','ref','prompt_image','dialogue','parole','prompt_clip'].forEach(function(k){s[k]=f(s[k])})});
+  persist();show();return n;
+}
 function phH(k){
   if(imgs[k])return '<img class="ph" alt="" src="'+imgs[k]+'"><div class="acts"><button class="cp ghost" data-ph="'+k+'">Remplacer</button><button class="cp ghost" data-rm="'+k+'">Retirer</button></div>';
   return '<button class="cp ghost" data-ph="'+k+'">Ajouter ma photo</button>';
@@ -188,6 +208,12 @@ function scenes(){
 
 document.addEventListener('click',function(ev){
   var b=ev.target.closest('button');if(!b)return;
+  if(b.dataset.ap){
+    var ci=b.dataset.ap,inp=document.querySelector('[data-cn="'+ci+'"]'),nv=inp.value.trim(),o=data.personnages[ci].nom;
+    if(nv&&nv!==o){repAll(o,nv)}
+    var nb=document.querySelector('[data-ap="'+ci+'"]');if(nb){nb.textContent='Fait';setTimeout(function(){nb.textContent='Appliquer partout'},1500)}
+    return;
+  }
   if(b.dataset.ph){phKey=b.dataset.ph;$('#phin').value='';$('#phin').click();return}
   if(b.dataset.rm){delete imgs[b.dataset.rm];idbSet(imgs);show();return}
   if(b.classList.contains('cp')&&!b.dataset.act){
@@ -210,6 +236,19 @@ async function refo(i,b){
 
 $('#file').addEventListener('change',function(){var f=this.files[0];$('#fname').textContent=f?f.name+' ('+(f.size/1e6).toFixed(1)+' Mo)':'MP4 ou MOV, 18 Mo maximum'});
 $('#go').addEventListener('click',analyse);
+$('#rb').addEventListener('click',function(){
+  var a=$('#rf').value.trim(),b=$('#rt').value.trim(),m=$('#rmsg');
+  if(!data){m.textContent='Analyse d’abord une vidéo.';return}
+  if(!a||!b){m.textContent='Remplis les deux champs.';return}
+  var n=repAll(a,b);
+  m.textContent=n?(n+' remplacement'+(n>1?'s':'')+' fait'+(n>1?'s':'')+' dans toutes les scènes et les personnages.'):'Aucun « '+a+' » trouvé.';
+});
+['key','model','style'].forEach(function(id){
+  $('#'+id).addEventListener('input',function(){
+    ss({key:'gk',model:'gm',style:'gs'}[id],this.value.trim());
+    $('#saved').textContent='Enregistré sur ce téléphone.';
+  });
+});
 $('#phin').addEventListener('change',function(){
   var f=this.files[0];if(!f||!phKey)return;var k=phKey;var u=URL.createObjectURL(f);var im=new Image();
   im.onload=function(){
